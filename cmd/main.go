@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -82,53 +80,6 @@ func (w Woo) dir2html(sourceDir string) error {
 	return err
 }
 
-func (w Woo) file2html(sourceFile string) error {
-	fmt.Printf("fn=%v\n", sourceFile)
-
-	var source []byte
-
-	source, err := os.ReadFile(sourceFile)
-	if err != nil {
-		return err
-	}
-
-	// 3.1 Create target targetDir based on the title meta field
-	targetDir, err := w.createTargetDir(sourceFile)
-	if err != nil {
-		return err
-	}
-	targetFile, err := w.getTargetFile(targetDir, sourceFile)
-	if err != nil {
-		return err
-	}
-
-	// 3.2 Convert to HTML and write to target dir
-	var buf bytes.Buffer
-	if err := w.Converter.Convert(source, &buf); err != nil {
-		panic(err)
-	}
-
-	// 4.  Insert header and footer from template dir
-	values := map[string]string{
-		"TITLE": title(string(source)),
-	}
-	s, err := w.addHeaderAndFooter(buf.String(), values)
-	if err != nil {
-		panic(err)
-	}
-
-	// 5.  Copy any image from the directory of the markdown file
-	//     to the corresponding target dir.
-	w.copyFilesToTargetDir(sourceFile, targetDir)
-
-	if err = os.WriteFile(targetFile, []byte(s), 0644); err != nil {
-		return err
-	}
-
-	fmt.Printf("Wrote: %v\n", targetFile)
-	return nil
-}
-
 // getTargetFile returns the target file name corresponding to fn
 // (source file). It will be a filename with a dir prefix.
 func (w Woo) getTargetFile(targetDir, fn string) (string, error) {
@@ -137,76 +88,6 @@ func (w Woo) getTargetFile(targetDir, fn string) (string, error) {
 		return "", errors.New("Not an md file")
 	}
 	return targetDir + string(filepath.Separator) + s + ".html", nil
-}
-
-// copyFilesToTargetDir copies non-markdown files in the same
-// directory as fn (fn, being the full path to a Markdown file) to
-// target dir.
-func (w Woo) copyFilesToTargetDir(srcFileName string, targetDir string) error {
-	srcDir := filepath.Dir(srcFileName)
-	dfi, derr := os.Stat(targetDir)
-	if derr != nil {
-		return derr
-	}
-	err := filepath.WalkDir(
-		srcDir,
-		func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return nil
-			}
-			sfi, err := os.Stat(path)
-			if err != nil {
-				return err
-			}
-			if !sfi.Mode().Perm().IsRegular() {
-				fmt.Printf("Not a regular file: %v\n", sfi)
-				return nil
-			}
-			if os.SameFile(dfi, sfi) {
-				return nil
-			}
-			srcFile, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer srcFile.Close()
-			targetFileName := targetDir +
-				string(filepath.Separator) +
-				filepath.Base(path)
-
-			dstFile, err := os.Create(targetFileName)
-			defer func() error {
-				if err := dstFile.Close(); err != nil {
-					return err
-				}
-				return nil
-			}()
-
-			if err != nil {
-				return err
-			}
-
-			bytes, err := io.Copy(dstFile, srcFile)
-			if err != nil {
-				return err
-			}
-			err = dstFile.Sync()
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf(
-				"Copied %v to %v, %v bytes in total\n",
-				srcFile.Name(),
-				dstFile.Name(),
-				bytes)
-
-			return nil
-		},
-	)
-
-	fmt.Printf("TODO Copy all files in %v to %v\n", srcDir, targetDir)
-	return err
 }
 
 func (w Woo) addHeaderAndFooter(s string, values map[string]string) (string, error) {
@@ -280,7 +161,8 @@ func getTargetDir(fn string) string {
 }
 
 type Woo struct {
-	Converter goldmark.Markdown
+	Converter  goldmark.Markdown
+	DirsCopied []string
 }
 
 func NewWoo() Woo {
