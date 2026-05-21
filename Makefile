@@ -27,3 +27,8 @@ vuln:
 install: build
 	mkdir -p ~/.local/bin
 	cp build/woo ~/.local/bin/.
+
+.phony: upgrade
+upgrade:
+	go get -u
+	go mod tidy
