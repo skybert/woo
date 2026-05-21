@@ -30,5 +30,5 @@ install: build
 
 .phony: upgrade
 upgrade:
-	go get -u
+	cd cmd && go get -u
 	go mod tidy
