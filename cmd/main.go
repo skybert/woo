@@ -139,9 +139,11 @@ func title(s string) string {
 // expandTemplate replaces any supported variable inside the (HTML)
 // template file with an actual value.
 func expandTemplate(template []byte, values map[string]string) string {
-	fmt.Printf("TODO dynamic variable map\n")
-	key := "TITLE"
-	return strings.ReplaceAll(string(template), "{{TITLE}}", values[key])
+	result := string(template)
+	for key, value := range values {
+		result = strings.ReplaceAll(result, "{{"+key+"}}", value)
+	}
+	return result
 }
 
 func (w Woo) createTargetDir(fn string) (string, error) {
