@@ -43,7 +43,10 @@ func (w *Woo) file2html(sourceFile string) error {
 
 	// 5.  Copy any image from the directory of the markdown file
 	//     to the corresponding target dir.
-	w.copyFilesToTargetDir(sourceFile, targetDir)
+	err = w.copyFilesToTargetDir(sourceFile, targetDir)
+	if err != nil {
+		return err
+	}
 
 	if err = os.WriteFile(targetFile, []byte(s), 0644); err != nil {
 		return err

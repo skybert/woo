@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -30,6 +31,9 @@ func (w *Woo) copyFilesToTargetDir(srcFileName string, targetDir string) error {
 	err := filepath.WalkDir(
 		srcDir,
 		func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
 			if d.IsDir() {
 				return nil
 			}
@@ -48,17 +52,21 @@ func (w *Woo) copyFilesToTargetDir(srcFileName string, targetDir string) error {
 			if err != nil {
 				return err
 			}
-			defer srcFile.Close()
+			defer func() {
+				if err := srcFile.Close(); err != nil {
+					log.Printf("failed to close file: %v", err)
+				}
+			}()
+
 			targetFileName := targetDir +
 				string(filepath.Separator) +
 				filepath.Base(path)
 
 			dstFile, err := os.Create(targetFileName)
-			defer func() error {
+			defer func() {
 				if err := dstFile.Close(); err != nil {
-					return err
+					log.Printf("failed to close file: %v", err)
 				}
-				return nil
 			}()
 
 			if err != nil {
