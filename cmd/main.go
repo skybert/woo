@@ -17,7 +17,7 @@ import (
 
 var Version = "dev"
 var showVersion bool
-var sourceDir = "/tmp/src"
+var sourceDir = "test"
 var targetDir = "/tmp/target"
 var theme = "sweet"
 
@@ -37,7 +37,7 @@ func footerFile() string {
 
 func init() {
 	pflag.BoolVarP(&showVersion, "version", "v", false, "Show version")
-	pflag.StringVar(&sourceDir, "src-dir", "/tmp/src", "Source directory")
+	pflag.StringVar(&sourceDir, "src-dir", "test", "Source directory")
 	pflag.StringVar(&targetDir, "target-dir", "/tmp/output", "Target directory")
 }
 
@@ -85,7 +85,7 @@ func (w Woo) dir2html(sourceDir string) error {
 func (w Woo) getTargetFile(targetDir, fn string) (string, error) {
 	s, ok := strings.CutSuffix(filepath.Base(fn), ".md")
 	if !ok {
-		return "", errors.New("Not an md file")
+		return "", errors.New("not an .md file")
 	}
 	return targetDir + string(filepath.Separator) + s + ".html", nil
 }
